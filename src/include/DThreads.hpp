@@ -20,6 +20,7 @@
 
 class DThreads {
     private:
+        static Thread *running;
         static std::list<Thread *> threads;
         static bool initialized;
     public:

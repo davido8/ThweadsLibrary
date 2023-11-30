@@ -34,11 +34,8 @@ Thread::Thread() {
     asm("mov %%rsp, %0" : "=r"(stackAddress));
     stackAddress &= ~pgmask;
 
-    printf("Stack: %p\n", (void *) stackAddress);
-
     /* Allocate a page with no permissions to serve as guard page. */
     void *guardLocation = reinterpret_cast<void *>(stackAddress + stackSize);
-    printf("Guard: %p\n", guardLocation);
     void *ptr = mmap(guardLocation, PGSIZE, PROT_NONE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     if (ptr != guardLocation || ptr == MAP_FAILED) {
         printf("Error: Could not map guard page at desired location. Got 0x%p instead of 0x%p\n", ptr, guardLocation);
@@ -47,7 +44,7 @@ Thread::Thread() {
     }
     Thread::nextStack = reinterpret_cast<uintptr_t>(guardLocation) + PGSIZE;
 
-    printf(" Next: %p\n", (void *) nextStack);
+    this->status = Running;
 }
 
 Thread::Thread(std::string name, std::function<void()> func) {
@@ -88,12 +85,15 @@ Thread::Thread(std::string name, std::function<void()> func) {
         exit(EXIT_FAILURE);
     }
     Thread::nextStack = reinterpret_cast<uintptr_t>(guardLocation) + PGSIZE;
+
+    this->status = Ready;
 }
 
 void Thread::Start() {
     /* Main thread will have already been started. */
     if (!started) {
         main();
+        this->Terminate();
     }
 
     assert(!"Thread already started!\n");
@@ -101,4 +101,8 @@ void Thread::Start() {
 
 void Thread::SaveContext() {
 
+}
+
+void Thread::Terminate() {
+    this->status = Terminated;
 }

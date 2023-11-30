@@ -6,6 +6,12 @@
 
 using tid_t = int64_t;
 
+enum ThreadStatus {
+    Running,
+    Ready,
+    Terminated
+};
+
 struct Registers {
     // General-purpose int registers.
     uint64_t rax;
@@ -38,6 +44,7 @@ class Thread {
         std::function<void()> main;
         bool started;
 
+        enum ThreadStatus status;
         struct Registers registers;
 
         /*------------------ Static Variables ------------------*/
@@ -62,6 +69,9 @@ class Thread {
 
         void Start();
         void SaveContext();
+        void Terminate();
+
+        enum ThreadStatus getStatus() { return status; }
 };
 
 #endif

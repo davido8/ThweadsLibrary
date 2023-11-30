@@ -18,11 +18,14 @@
 
 #include "Thread.hpp"
 
-class DThreadManager {
+class DThreads {
     private:
         static std::list<Thread *> threads;
         static bool initialized;
 
+        // Used to allocate new stacks for threads.
+        static uintptr_t stackGap;
+        static uintptr_t lastStack;
     public:
         static void Init();
         static void Create(std::string name, std::function<void()> func);

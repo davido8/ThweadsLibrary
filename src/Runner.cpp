@@ -1,17 +1,21 @@
 #include <iostream>
 
-#include "Manager.hpp"
+#include "DThreads.hpp"
 
 void thread_func() {
     std::cout << "Hello from thread!\n";
-    DThreadManager::Yield();
+    DThreads::Yield();
 }
 
 int main(int argc, char *arv[]) {
     std::cout << "Runner program starting.\n";
 
-    DThreadManager::Init();
-    DThreadManager::Create("Thread 1", thread_func);
+    DThreads::Init();
+    // DThreadManager::Create("Thread 1", thread_func);
+    // DThreadManager::Create("Thread 2", thread_func);
+    // DThreadManager::Create("Thread 3", thread_func);
+    // DThreadManager::Create("Thread 4", thread_func);
+    // DThreadManager::Create("Thread 5", thread_func);
 
     std::cout << "Runner program ending.\n";
 }

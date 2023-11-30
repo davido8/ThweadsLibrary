@@ -10,22 +10,10 @@
 std::list<Thread *> DThreads::threads;
 bool DThreads::initialized = false;
 
-// TODO: Not hardcode? I dunno. 8 MB should be fine for now.
-uintptr_t  DThreads::stackGap = 0x800000;
-uintptr_t DThreads::lastStack = 0;
-
 void DThreads::Init() {
-    // Initialize by adding main thread to the list of threads.
-    std::cout << "Thread subsystem initialized.\n";
+    /* Initialize by adding main thread to the list of threads. */
+    DThreads::threads.push_back(new Thread());
 
-    asm("mov %%rsp, %0" : "=r"(lastStack));
-    lastStack = lastStack & (~0xFFFF);
-
-    printf("Main's stack is at 0x%ld, next one will be at 0x%ld\n", lastStack, lastStack + stackGap);
-
-
-
-    // TODO
     initialized = true;
 }
 

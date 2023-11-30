@@ -36,17 +36,28 @@ class Thread {
         tid_t id;
         std::string name;
         std::function<void()> main;
+        bool started;
 
         struct Registers registers;
+
+        /*------------------ Static Variables ------------------*/
+
+        // Used to allocate new stacks for threads.
+        static uintptr_t stackSize;
+        static uintptr_t nextStack;
 
         static tid_t threadIDCount;
 
     public:
+        /* Used to create new threads starting at func. */
         Thread(
             std::string name,
             std::function<void()> func
             // uintptr_t stackLocation
         );
+
+        /* Used to initialize the main thread. */
+        Thread();
         ~Thread();
 
         void Start();

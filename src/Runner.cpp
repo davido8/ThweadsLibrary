@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "DThreads.hpp"
+#include "Tests.hpp"
 
 void thread_func() {
     std::cout << "Hello from thread!\n";
@@ -8,14 +9,10 @@ void thread_func() {
 }
 
 int main(int argc, char *arv[]) {
-    std::cout << "Runner program starting.\n";
+    std::cout << "Runner program starting.\n\n";
 
     DThreads::Init();
-    // DThreadManager::Create("Thread 1", thread_func);
-    // DThreadManager::Create("Thread 2", thread_func);
-    // DThreadManager::Create("Thread 3", thread_func);
-    // DThreadManager::Create("Thread 4", thread_func);
-    // DThreadManager::Create("Thread 5", thread_func);
+    DThreads::Create("thread 1", thread_func);
 
-    std::cout << "Runner program ending.\n";
+    std::cout << "\nRunner program ending.\n";
 }

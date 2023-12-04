@@ -51,10 +51,6 @@ Thread::Thread() {
     this->status = Running;
 }
 
-void test(Thread *t) {
-    t->Start();
-}
-
 Thread::Thread(std::string name, std::function<void()> func) {
     this->id = threadIDCount++;
     this->name = name;
@@ -100,12 +96,10 @@ Thread::Thread(std::string name, std::function<void()> func) {
     this->status = Ready;
 
     /* Set %rip to point to Start() function. */
-    printf("Addr of test(): %p\n", test);
-    this->registers.rip = reinterpret_cast<uintptr_t>(&test);
+    this->registers.rip = reinterpret_cast<uintptr_t>((void *) &Thread::Start);
 
-    printf("Address of %s is %p\n", name.c_str(), this);
-    this->registers.rbp = reinterpret_cast<uintptr_t>(stackLocation) + PGSIZE*1;
-    this->registers.rsp = reinterpret_cast<uintptr_t>(stackLocation) + PGSIZE*1;
+    this->registers.rbp = reinterpret_cast<uintptr_t>(stackLocation) + PGSIZE*PREALLOC;
+    this->registers.rsp = reinterpret_cast<uintptr_t>(stackLocation) + PGSIZE*PREALLOC;
     this->registers.rdi = (uint64_t) ((void *) this);
     this->pushFakeRegisters();
 

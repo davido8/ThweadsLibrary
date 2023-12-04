@@ -12,7 +12,7 @@ int main(int argc, char *arv[]) {
     std::cout << "Runner program starting.\n\n";
 
     DThreads::Init();
-    willinglyYielding(5);
+    addIndependentVectors();
 
     std::cout << "\nRunner program ending.\n";
 }

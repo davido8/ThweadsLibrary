@@ -1,4 +1,7 @@
 #include <cstdio>
+#include <cstdlib>
+#include <ctime>
+#include <cassert>
 #include <stdint.h>
 #include <string>
 #include "DThreads.hpp"
@@ -46,4 +49,32 @@ void willinglyYielding(int N) {
     DThreads::Create("thread 1", printMessageYieldLoop1);
     DThreads::Create("thread 2", printMessageYieldLoop2);
     printMessageYieldLoopM();
+}
+
+static void mathyOperations() {
+    int nums[100] = {0};
+    for (int i = 0; i < 100; i++) {
+        nums[i] = i;
+    }
+    DThreads::Yield();
+
+    /* Square all numbers. */
+    for (int i = 0; i < 100; i++) {
+        nums[i] *= nums[i];
+        DThreads::Yield();
+    }
+
+    /* Verify they are all correct. */
+    for (int i = 0; i < 100; i++) {
+        assert(nums[i] == i * i);
+    }
+
+    printf("It worked!\n");
+}
+
+void addIndependentVectors() {
+    srand(std::time(nullptr));
+
+    DThreads::Create("thread 1", printMessageYieldLoop1);
+    mathyOperations();
 }

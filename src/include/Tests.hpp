@@ -26,3 +26,9 @@ void stackMappedCorrectly();
     make, not including main.
 */
 void willinglyYielding(int N);
+
+/*
+    Does some computations, yields the CPU, then continues computations. This
+    tests that registers are being saved and restored correctly.
+*/
+void addIndependentVectors();

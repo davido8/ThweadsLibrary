@@ -46,6 +46,7 @@ class Thread {
 
         enum ThreadStatus status;
         struct Registers registers;
+        int justRestored;
 
         /*------------------ Static Variables ------------------*/
 
@@ -55,6 +56,9 @@ class Thread {
 
         static tid_t threadIDCount;
 
+        /*------------------ Private Functions ------------------*/
+        void printSavedRegisters();
+        void pushFakeRegisters();
     public:
         /* Used to create new threads starting at func. */
         Thread(
@@ -68,10 +72,13 @@ class Thread {
         ~Thread();
 
         void Start();
-        void SaveContext();
         void Terminate();
 
         enum ThreadStatus getStatus() { return status; }
+        void setStatus(enum ThreadStatus status) { this->status = status; }
+        std::string getName() { return name; }
+
+        static void SwitchThreads(Thread *prev, Thread *next);
 };
 
 #endif

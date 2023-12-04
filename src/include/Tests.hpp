@@ -17,3 +17,12 @@ void testThreadOverflow();
     segmentation fault. And when you don't mmap it, it does.
 */
 void stackMappedCorrectly();
+
+/*
+    This tests that yielding + scheduling + context switching works at a 
+    minimal level where threads can alternate printing messages by calling yield
+    themselves. First main will print, then the next thread, and the next, 
+    looping back to main and repeating forever. N is the number of threads to 
+    make, not including main.
+*/
+void willinglyYielding(int N);

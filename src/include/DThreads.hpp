@@ -22,7 +22,10 @@ class DThreads {
     private:
         static Thread *running;
         static std::list<Thread *> threads;
+        static std::list<Thread *> ready;
         static bool initialized;
+
+        static void Schedule();
     public:
         static void Init();
         static void Create(std::string name, std::function<void()> func);

@@ -3,12 +3,14 @@
 
 #include <string>
 #include <functional>
+#include <csignal>
 
 using tid_t = int64_t;
 
 enum ThreadStatus {
     Running,
     Ready,
+    Blocked,
     Terminated
 };
 
@@ -48,6 +50,8 @@ class Thread {
         struct Registers registers;
         int justRestored;
 
+        Thread *joiner;
+
         /*------------------ Static Variables ------------------*/
 
         // Used to allocate new stacks for threads.
@@ -64,7 +68,6 @@ class Thread {
         Thread(
             std::string name,
             std::function<void()> func
-            // uintptr_t stackLocation
         );
 
         /* Used to initialize the main thread. */
@@ -73,10 +76,16 @@ class Thread {
 
         void Start();
         void Terminate();
+        void Block();
+        void Unblock();
+
+        void JoinOn(Thread *t);
 
         enum ThreadStatus getStatus() { return status; }
         void setStatus(enum ThreadStatus status) { this->status = status; }
         std::string getName() { return name; }
+
+        tid_t getTID() { return id; }
 
         static void SwitchThreads(Thread *prev, Thread *next);
 };

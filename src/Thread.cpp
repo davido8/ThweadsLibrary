@@ -7,6 +7,7 @@
 
 #include <sys/mman.h>
 #include <unistd.h>
+#include <sys/types.h>
 
 #include "Thread.hpp"
 #include "DThreads.hpp"
@@ -17,7 +18,7 @@ tid_t Thread::threadIDCount = 0;
 size_t Thread::stackSize = 0x800000;
 uintptr_t Thread::nextStack;
 
-size_t PREALLOC = 4;
+size_t PREALLOC = 20;
 size_t PGSIZE;
 
 Thread::Thread() {
@@ -35,7 +36,6 @@ Thread::Thread() {
     uintptr_t stackAddress;
     asm("mov %%rsp, %0" : "=r"(stackAddress));
     stackAddress &= ~pgmask;
-    printf("Mains stack is at %p\n", (void *) stackAddress);
 
     /* Allocate a page with no permissions to serve as guard page. */
     void *guardLocation = reinterpret_cast<void *>(stackAddress + stackSize);
@@ -73,7 +73,6 @@ Thread::Thread(std::string name, std::function<void()> func) {
         exit(EXIT_FAILURE);
     }
     stackLocation = ptr;
-    printf("Allocated stack for %s at %p - %p.\n", name.c_str(), stackLocation, (void *) ((uintptr_t) stackLocation + PGSIZE*PREALLOC));
 
     /* Allocate a page with no permissions to serve as guard page. */
     void *guardLocation = reinterpret_cast<void *>(nextStack + stackSize);
@@ -94,6 +93,7 @@ Thread::Thread(std::string name, std::function<void()> func) {
     Thread::nextStack = reinterpret_cast<uintptr_t>(guardLocation) + PGSIZE;
 
     this->status = Ready;
+    this->joiner = nullptr;
 
     /* Set %rip to point to Start() function. */
     this->registers.rip = reinterpret_cast<uintptr_t>((void *) &Thread::Start);
@@ -102,13 +102,9 @@ Thread::Thread(std::string name, std::function<void()> func) {
     this->registers.rsp = reinterpret_cast<uintptr_t>(stackLocation) + PGSIZE*PREALLOC;
     this->registers.rdi = (uint64_t) ((void *) this);
     this->pushFakeRegisters();
-
-    printSavedRegisters();
-    printf("Thread %s created.\n", this->name.c_str());
 }
 
 void Thread::pushFakeRegisters() {
-    printf("Pushing fake registers.\n");
     uint64_t rsp = this->registers.rsp;
 
     /* Copy our register file onto the stack. */
@@ -122,6 +118,7 @@ void Thread::pushFakeRegisters() {
 void Thread::Start() {
     /* Main thread will have already been started. */
     if (!started) {
+        DThreads::SetInterrupts(true);
         this->main();
         this->Terminate();
     }
@@ -158,42 +155,44 @@ void Thread::printSavedRegisters() {
 void Thread::SwitchThreads(Thread *prev, Thread *next) {
     /* prev is stored in %rdi, next is stored in %rsi. */
 
-    /* Push all registers onto the stack backwards. */
-    asm volatile (
-            "sub $0x10, %%rsp\n\t" /* GCC not decrementing for rdi and rsi... */
-            "push %%r15\n\t"
-            "push %%r14\n\t"
-            "push %%r13\n\t"
-            "push %%r12\n\t"
-            "push %%r11\n\t"
-            "push %%r10\n\t"
-            "push %%r9\n\t"
-            "push %%r8\n\t"
-            "push %%rdi\n\t"
-            "push %%rsi\n\t"
-            "push %%rsp\n\t"
-            "push %%rbp\n\t"
-            "push %%rdx\n\t"
-            "push %%rcx\n\t"
-            "push %%rbx\n\t"
-            "push %%rax\n\t"       
+    if (prev) {
+        /* Push all registers onto the stack backwards. */
+        asm volatile (
+                "sub $0x10, %%rsp\n\t" /* GCC not decrementing for rdi and rsi... */
+                "push %%r15\n\t"
+                "push %%r14\n\t"
+                "push %%r13\n\t"
+                "push %%r12\n\t"
+                "push %%r11\n\t"
+                "push %%r10\n\t"
+                "push %%r9\n\t"
+                "push %%r8\n\t"
+                "push %%rdi\n\t"
+                "push %%rsi\n\t"
+                "push %%rsp\n\t"
+                "push %%rbp\n\t"
+                "push %%rdx\n\t"
+                "push %%rcx\n\t"
+                "push %%rbx\n\t"
+                "push %%rax\n\t"       
 
-            /* Make sure to save rsp, rbp, and rip to register file. */
-            "mov %%rbp, %0\n\t" 
-            "mov %%rsp, %1\n\t" 
-            "lea (%%rip), %2\n\t" 
+                /* Make sure to save rsp, rbp, and rip to register file. */
+                "mov %%rbp, %0\n\t" 
+                "mov %%rsp, %1\n\t" 
+                "lea (%%rip), %2\n\t" 
 
-        :   "=r"(prev->registers.rbp),
-            "=r"(prev->registers.rsp),
-            "=r"(prev->registers.rip)
-    );
+            :   "=r"(prev->registers.rbp),
+                "=r"(prev->registers.rsp),
+                "=r"(prev->registers.rip)
+        );
 
-    if (prev->justRestored) {
-        prev->justRestored = false;
-        asm volatile ("add $0x10, %rsp\n\t");
-        return;
+        if (prev->justRestored) {
+            prev->justRestored = false;
+            asm volatile ("add $0x10, %rsp\n\t");
+            return;
+        }
+        prev->justRestored = true;
     }
-    prev->justRestored = true;
 
     /* Restore next's context. */
     asm volatile (
@@ -234,5 +233,27 @@ void Thread::SwitchThreads(Thread *prev, Thread *next) {
 
 void Thread::Terminate() {
     this->status = Terminated;
+    
+    if (this->joiner) {
+        this->joiner->Unblock();
+    }
+
     DThreads::Yield();
 }
+
+void Thread::Block() {
+    this->status = Blocked;
+    DThreads::Yield();
+}
+
+void Thread::Unblock() {
+    assert(this->status == Blocked);
+    this->status = Ready;
+    DThreads::AddToReady(this);
+}
+
+void Thread::JoinOn(Thread *t) {
+    this->joiner = t;
+}
+
+Thread::~Thread() {}
